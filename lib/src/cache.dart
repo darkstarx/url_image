@@ -70,7 +70,9 @@ class UrlImageCache
   }) async
   {
     final stream = get(url, name: name, downloader: downloader);
-    await for (var item in stream) return item;
+    await for (var item in stream) {
+      return item;
+    }
     return null;
   }
 
@@ -176,9 +178,13 @@ class UrlImageCache
         if (fileStorage != null) {
           fileName ??= await _getFileName(name);
           if (fileName != null) {
-            await fileStorage.saveStream(fileName, Stream.fromIterable([
-              [ data.type.index ], data.bytes,
-            ]));
+            try {
+              await fileStorage.saveStream(fileName, Stream.fromIterable([
+                [ data.type.index ], data.bytes,
+              ]));
+            } catch (e) {
+              log.warning('Failed to cache "$url": $e');
+            }
           }
         }
         final item = await _makeItem(data.bytes, ImageType.fresh, data.type);

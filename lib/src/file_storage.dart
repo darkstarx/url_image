@@ -13,8 +13,8 @@ abstract interface class FileStorageDelegate
   Future<List<int>?> loadData(final String fileName);
 
   /// Saves the [data] to the file [fileName].
-  Future<bool> saveData(final String fileName, final List<int> data);
+  Future<void> saveData(final String fileName, final List<int> data);
 
   /// Saves the [stream] to the file [fileName].
-  Future<bool> saveStream(final String fileName, final Stream<List<int>> stream);
+  Future<void> saveStream(final String fileName, final Stream<List<int>> stream);
 }

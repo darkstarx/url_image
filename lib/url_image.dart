@@ -1,5 +1,3 @@
-library url_image;
-
 export 'src/cache.dart';
 export 'src/config.dart';
 export 'src/downloader.dart';

@@ -23,13 +23,13 @@ class MyFileStorage implements FileStorageDelegate
   }
 
   @override
-  Future<bool> saveData(final String fileName, final List<int> data)
+  Future<void> saveData(final String fileName, final List<int> data)
   {
     return _fileStorage.saveData(fileName, data);
   }
 
   @override
-  Future<bool> saveStream(final String fileName, final Stream<List<int>> stream)
+  Future<void> saveStream(final String fileName, final Stream<List<int>> stream)
   {
     return _fileStorage.saveStream(fileName, stream);
   }
