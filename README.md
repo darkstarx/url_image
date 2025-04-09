@@ -73,6 +73,6 @@ Then you just use the `UrlImage` in your widget tree like you usually use widget
   UrlImage(
     name: 'user_profile',
     url: user.pictureUrl,
-    fit: BixFit.contain,
+    fit: BoxFit.contain,
   ),
 ```
