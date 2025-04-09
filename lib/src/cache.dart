@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'dart:ui';
 
 import 'config.dart';
 import 'disposable_provider.dart';
@@ -10,7 +9,7 @@ import 'raster_provider.dart';
 import 'vector_provider.dart';
 
 
-enum ImageType
+enum ImageStatus
 {
   stale,
   fresh,
@@ -19,20 +18,13 @@ enum ImageType
 class ImageCacheItem
 {
   final DisposableProvider image;
-  final ImageType imageType;
-  final Size? imageSize;
+  final ImageStatus imageStatus;
 
-  const ImageCacheItem(this.image, this.imageType, {
-    this.imageSize,
-  });
+  const ImageCacheItem(this.image, this.imageStatus);
 
-  ImageCacheItem stale() => ImageCacheItem(
-    image, ImageType.stale, imageSize: imageSize,
-  );
+  ImageCacheItem stale() => ImageCacheItem(image, ImageStatus.stale);
 
-  ImageCacheItem fresh() => ImageCacheItem(
-    image, ImageType.fresh, imageSize: imageSize,
-  );
+  ImageCacheItem fresh() => ImageCacheItem(image, ImageStatus.fresh);
 }
 
 
@@ -90,7 +82,7 @@ class UrlImageCache
     final item = _cache[key];
     if (item != null) {
       yield item;
-      if (item.imageType == ImageType.fresh) return;
+      if (item.imageStatus == ImageStatus.fresh) return;
     }
     var stream = _streams[key];
     if (stream == null) {
@@ -110,7 +102,7 @@ class UrlImageCache
     final key = url?.hashCode;
     if (key == null) {
       _cache.forEach((key, value) {
-        if (value.imageType == ImageType.fresh) {
+        if (value.imageStatus == ImageStatus.fresh) {
           invalidated[key] = value.stale();
         }
       });
@@ -147,11 +139,7 @@ class UrlImageCache
             if (data != null && data.isNotEmpty) {
               dataType = DownloadedDataType.fromIndex(data.first);
               bytes = Uint8List.fromList(data.sublist(1));
-              final item = await _makeItem(
-                bytes,
-                ImageType.stale,
-                dataType,
-              );
+              final item = await _makeItem(bytes, ImageStatus.stale, dataType);
               if (item != null) {
                 _cache[key]?.image.dispose();
                 _cache[key] = item;
@@ -161,7 +149,7 @@ class UrlImageCache
           }
         }
       }
-    } else if (cached.imageType == ImageType.fresh) {
+    } else if (cached.imageStatus == ImageStatus.fresh) {
       _streams.remove(key);
       return;
     }
@@ -187,7 +175,7 @@ class UrlImageCache
             }
           }
         }
-        final item = await _makeItem(data.bytes, ImageType.fresh, data.type);
+        final item = await _makeItem(data.bytes, ImageStatus.fresh, data.type);
         if (item != null) {
           _cache[key]?.image.dispose();
           _cache[key] = item;
@@ -200,7 +188,7 @@ class UrlImageCache
 
   Future<ImageCacheItem?> _makeItem(
     final Uint8List bytes,
-    final ImageType imageType,
+    final ImageStatus imageStatus,
     final DownloadedDataType? dataType,
   ) async
   {
@@ -209,17 +197,12 @@ class UrlImageCache
         return null;
       case DownloadedDataType.raster:
         final imageProvider = RasterProvider(Uint8List.fromList(bytes));
-        final imageSize = await _resolveImageSize(imageProvider);
-        return ImageCacheItem(imageProvider, imageType,
-          imageSize: imageSize,
-        );
+        return ImageCacheItem(imageProvider, imageStatus);
       case DownloadedDataType.vector:
         final vectorDecoder = UrlImageConfig.instance.vectorDecoder;
         if (vectorDecoder == null) {
           log.warning('Vector decoder is not set.');
-          return ImageCacheItem(RasterProvider.invalid, imageType,
-            imageSize: Size.zero,
-          );
+          return ImageCacheItem(RasterProvider.invalid, imageStatus);
         } else {
           try {
             final vectorInfo = await vectorDecoder.decode(
@@ -227,14 +210,10 @@ class UrlImageCache
               clipViewbox: false,
             );
             final imageProvider = VectorProvider(vectorInfo);
-            return ImageCacheItem(imageProvider, imageType,
-              imageSize: vectorInfo.size,
-            );
+            return ImageCacheItem(imageProvider, imageStatus);
           } catch (e) {
             log.warning('Failed to decode vector graphics: $e');
-            return ImageCacheItem(RasterProvider.invalid, imageType,
-              imageSize: Size.zero,
-            );
+            return ImageCacheItem(RasterProvider.invalid, imageStatus);
           }
         }
     }
@@ -272,34 +251,6 @@ class UrlImageCache
     } finally {
       _downloads.remove(url);
     }
-  }
-
-  Future<Size?> _resolveImageSize(final ImageProvider imageProvider) async
-  {
-    final completer = Completer<ImageInfo>();
-    final imageStream = imageProvider.resolve(
-      const ImageConfiguration(),
-    );
-    final imageStreamListener = ImageStreamListener(
-      (info, synchronousCall) => completer.complete(info),
-      onError: (error, stackTrace) {
-        log.warning(error);
-        if (!completer.isCompleted) completer.completeError(error, stackTrace);
-      },
-    );
-    imageStream.addListener(imageStreamListener);
-    try {
-      final info = await completer.future;
-      final size = Size(
-        info.image.width * info.scale,
-        info.image.height * info.scale,
-      );
-      info.image.dispose();
-      return size;
-    } catch (e) {
-      log.warning(e);
-    }
-    return null;
   }
 
   final _cache = <int, ImageCacheItem>{};

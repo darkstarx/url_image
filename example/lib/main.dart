@@ -90,9 +90,7 @@ class _MyHomePageState extends State<MyHomePage>
         child: Column(
           children: [
             Expanded(
-              child: Center(
-                child: UrlImage(name: name, url: url),
-              ),
+              child: UrlImage(name: name, url: url),
             ),
             const SizedBox(height: kToolbarHeight),
           ],

@@ -126,7 +126,7 @@ class _InkImageState extends State<InkImage>
           colorFilter: opacity == null
             ? null
             : ColorFilter.mode(
-                Colors.white.withOpacity(opacity),
+                Colors.white.withValues(alpha: opacity),
                 BlendMode.dstIn,
               ),
           onImageError: (exception, stackTrace) {
