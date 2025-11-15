@@ -7,17 +7,12 @@ import 'cache.dart';
 import 'config.dart';
 import 'downloader.dart';
 import 'ink_image.dart';
+import 'vector/provider.dart';
 
 
 typedef OnLoadingDone = void Function(bool success);
 
 typedef OnImageAppear = void Function(Size? size);
-
-
-Widget _defaultLoadingBuilder(final BuildContext context)
-{
-  return const Center(child: CircularProgressIndicator());
-}
 
 
 /// The widget downloads an image from the network and displays it.
@@ -42,6 +37,11 @@ class UrlImage extends StatefulWidget
 
   /// Common cache.
   static UrlImageCache get cache => UrlImageCache.instance;
+
+  static Widget defaultLoadingBuilder(final BuildContext context)
+  {
+    return const Center(child: CircularProgressIndicator());
+  }
 
   /// The [name] is used to store the image in the filesystem when the image is
   /// downloaded. Also [name] is used to load the image from the filesystem when
@@ -70,10 +70,8 @@ class UrlImage extends StatefulWidget
 
   /// How the image should be inscribed into the box.
   ///
-  /// The default is [BoxFit.cover].
-  ///
   /// See the discussion at [paintImage] for more details.
-  final BoxFit fit;
+  final BoxFit? fit;
 
   /// How to align the image within its bounds.
   ///
@@ -93,7 +91,15 @@ class UrlImage extends StatefulWidget
 
   /// How to align animated images, when a new image is fading in and the old
   /// one is fading out.
+  /// 
+  /// Defaults to [AlignmentDirectional.topStart].
   final AlignmentGeometry animationAlignment;
+
+  /// How to fit animated images in the stack, when a new image is fading in and
+  /// the old one is fading out.
+  /// 
+  /// Defaults to [StackFit.loose].
+  final StackFit animationFit;
 
   /// How long it takes to replace current image with another one.
   ///
@@ -101,22 +107,32 @@ class UrlImage extends StatefulWidget
   /// the old one from the local file system is presented firstly, and after
   /// successfull downloading the new image is replacing the old one smoothly
   /// with specified [animationDuration].
+  /// 
+  /// Defaults to [defaultAnimationDuration].
   final Duration animationDuration;
 
   /// The curve of the fade in animation.
+  /// 
+  /// Defaulte to [Curves.easeIn].
   final Curve animationFadeInCurve;
 
   /// The curve of the fade out animation.
+  /// 
+  /// Defaults to [Curves.easeOut].
   final Curve animationFadeOutCurve;
 
   /// Wether the first loaded image should appear with fadein animation.
   ///
   /// If true, the first image appears with animation, otherwise it shows
   /// immediately.
+  /// 
+  /// Defaulte to `true`.
   final bool animateInitialImage;
 
   /// Whether the image is drawing on the underlying material, so that [InkWell]
   /// and [InkResponse] splashes will render over it.
+  /// 
+  /// Defaults to `false`.
   final bool ink;
 
   /// The [child] contained by the container.
@@ -150,16 +166,17 @@ class UrlImage extends StatefulWidget
     this.downloader,
     this.width,
     this.height,
-    this.fit = BoxFit.cover,
+    this.fit,
     this.alignment = Alignment.center,
     this.animationAlignment = AlignmentDirectional.topStart,
+    this.animationFit = StackFit.loose,
     this.animationDuration = defaultAnimationDuration,
     this.animationFadeInCurve = Curves.easeIn,
     this.animationFadeOutCurve = Curves.easeOut,
     this.animateInitialImage = true,
-    this.ink = true,
+    this.ink = false,
     this.child,
-    this.loadingBuilder = _defaultLoadingBuilder,
+    this.loadingBuilder = defaultLoadingBuilder,
     this.errorBuilder,
     this.onLoadingDone,
     this.onImageAppear,
@@ -171,16 +188,17 @@ class UrlImage extends StatefulWidget
     this.downloader,
     this.width,
     this.height,
-    this.fit = BoxFit.cover,
+    this.fit,
     this.alignment = Alignment.center,
     this.animationAlignment = AlignmentDirectional.topStart,
+    this.animationFit = StackFit.loose,
     this.animationDuration = defaultAnimationDuration,
     this.animationFadeInCurve = Curves.easeIn,
     this.animationFadeOutCurve = Curves.easeOut,
     this.animateInitialImage = true,
-    this.ink = true,
+    this.ink = false,
     this.child,
-    this.loadingBuilder = _defaultLoadingBuilder,
+    this.loadingBuilder = defaultLoadingBuilder,
     this.errorBuilder,
     this.onLoadingDone,
     this.onImageAppear,
@@ -232,11 +250,7 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
   void didChangeDependencies()
   {
     super.didChangeDependencies();
-    _imageConfiguration = createLocalImageConfiguration(context,
-      size: widget.width != null && widget.height != null
-        ? Size(widget.width!, widget.height!)
-        : null,
-    );
+    _updateImageConfiguration();
     _loadImage();
   }
 
@@ -244,24 +258,26 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
   void didUpdateWidget(final UrlImage oldWidget)
   {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.animationDuration != widget.animationDuration) {
+    if (widget.animationDuration != oldWidget.animationDuration) {
       _animationCtrl.duration = widget.animationDuration;
     }
-    if (oldWidget.animationFadeInCurve != widget.animationFadeInCurve
-      || oldWidget.animationFadeOutCurve != widget.animationFadeOutCurve
+    if (widget.animationFadeInCurve != oldWidget.animationFadeInCurve
+      || widget.animationFadeOutCurve != oldWidget.animationFadeOutCurve
     ) {
       _makeAnimations();
     }
-    if (oldWidget.name != widget.name
-      || oldWidget.url != widget.url
-      || oldWidget.downloader != widget.downloader
-      || oldWidget.alignment != widget.alignment
-      || oldWidget.width != widget.width
-      || oldWidget.height != widget.height
-      || oldWidget.fit != widget.fit
-      || oldWidget.alignment != widget.alignment
-      || oldWidget.ink != widget.ink
-      || oldWidget.child != widget.child
+    if (widget.width != oldWidget.width || widget.height != oldWidget.height) {
+      _updateImageConfiguration();
+    }
+    if (widget.name != oldWidget.name
+      || widget.url != oldWidget.url
+      || widget.downloader != oldWidget.downloader
+      || widget.alignment != oldWidget.alignment
+      || widget.width != oldWidget.width
+      || widget.height != oldWidget.height
+      || widget.fit != oldWidget.fit
+      || widget.ink != oldWidget.ink
+      || widget.child != oldWidget.child
     ) {
       _loadImage();
     }
@@ -271,23 +287,33 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
   Widget build(final BuildContext context)
   {
     return LayoutBuilder(builder: (context, constraints) {
-      if (_newImageItem != null) {
-        final newImage = _buildImage(_newImageItem!,
+      final newImageItem = _newImageItem;
+      final curImageItem = _curImageItem;
+      Widget? newImage;
+      Widget? curImage;
+      if (newImageItem != null) {
+        newImage = _buildImage(newImageItem,
           constraints: constraints,
           opacity: _animation.value,
         );
-        if (_curImageItem != null) {
-          final curImage = _buildImage(_curImageItem!,
+        if (curImageItem != null) {
+          curImage = _buildImage(curImageItem,
             constraints: constraints,
             opacity: _backAnimation.value,
           );
-          return Stack(
-            alignment: widget.animationAlignment,
-            children: [ curImage, newImage ],
-          );
-        } else {
-          return newImage;
         }
+      } else if (curImageItem != null) {
+        curImage = _buildImage(curImageItem, constraints: constraints);
+      }
+      if (curImage != null || newImage != null) {
+        return Stack(
+          alignment: widget.animationAlignment,
+          fit: widget.animationFit,
+          children: [
+            if (curImage != null) curImage,
+            if (newImage != null) newImage,
+          ],
+        );
       } else if (_curImageItem != null) {
         return _buildImage(_curImageItem!, constraints: constraints);
       } else if (_done) {
@@ -321,41 +347,36 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
       case BoxFit.fitHeight:
       case BoxFit.fitWidth:
       case BoxFit.none:
+      case null:
         size = constraints.constrainSizeAndAttemptToPreserveAspectRatio(
           imageItem.size
         );
     }
-    final width = size.width;
-    final height = size.height;
-    return widget.ink
-      ? InkImage(
-          image: image,
-          width: width,
-          height: height,
-          fit: widget.fit,
-          alignment: widget.alignment,
-          opacity: opacity,
-          errorBuilder: widget.errorBuilder,
-          child: widget.child,
-        )
-      : Image(
-          image: image,
-          width: width,
-          height: height,
-          fit: widget.fit,
-          alignment: widget.alignment,
-          opacity: opacity == null
-            ? null
-            : AlwaysStoppedAnimation(opacity),
-          errorBuilder: (context, error, stackTrace) => buildErrorWidget(
-            context, error,
-            errorBuilder: widget.errorBuilder,
-            stackTrace: stackTrace,
-            width: constraints.constrainWidth(widget.width ?? double.infinity),
-            height: constraints.constrainWidth(widget.height ?? double.infinity),
-            opacity: opacity,
-          ),
-        );
+    final width = widget.width ?? size.width;
+    final height = widget.height ?? size.height;
+    final inkImage = InkImage(
+      image: image,
+      width: width,
+      height: height,
+      fit: widget.fit,
+      alignment: widget.alignment,
+      opacity: opacity,
+      errorBuilder: widget.errorBuilder,
+      child: widget.child,
+    );
+    return widget.ink ? inkImage : Material(
+      type: MaterialType.transparency,
+      child: inkImage,
+    );
+  }
+
+  void _updateImageConfiguration()
+  {
+    _imageConfiguration = createLocalImageConfiguration(context,
+      size: widget.width != null && widget.height != null
+        ? Size(widget.width!, widget.height!)
+        : null,
+    );
   }
 
   void _makeAnimations()
@@ -383,17 +404,21 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
     if (firstAnyItem == null) {
       _animateFirst = widget.animateInitialImage;
     } else {
-      final size = await _resolveImageSize(firstAnyItem.image);
+      final sizeOrFuture = _resolveImageSize(firstAnyItem.image);
+      final size = sizeOrFuture is Size ? sizeOrFuture : await sizeOrFuture;
       _addImage(ImageItem(image: firstAnyItem.image, size: size));
     }
 
     setState(() => _done = false);
     _reloading = false;
-    await for (var item in UrlImage.cache.get(widget.url, name: widget.name)) {
-      if (item == firstAnyItem) continue;
-      final size = await _resolveImageSize(item.image);
-      _addImage(ImageItem(image: item.image, size: size));
-      if (_reloading) break;
+    if (firstAnyItem == null) {
+      await for (var item in UrlImage.cache.get(widget.url, name: widget.name)) {
+        if (item == firstAnyItem) continue;
+        final sizeOrFuture = _resolveImageSize(item.image);
+        final size = sizeOrFuture is Size ? sizeOrFuture : await sizeOrFuture;
+        _addImage(ImageItem(image: item.image, size: size));
+        if (_reloading) break;
+      }
     }
     if (!_reloading) {
       setState(() => _done = true);
@@ -417,20 +442,19 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
       setState(() {
         _curImageItem = _newImageItem;
         _newImageItem = null;
-        widget.onImageAppear?.call(_nextImageItem!.size);
-        _nextImageItem = null;
+        widget.onImageAppear?.call(_curImageItem!.size);
       });
     }
     if (!mounted) return;
     if (_queue.isEmpty) return;
     setState(() {
       final nextImageItem = _queue.removeFirst();
+      assert(_newImageItem == null);
       if (_curImageItem == null && !_animateFirst) {
         _curImageItem = nextImageItem;
         widget.onImageAppear?.call(nextImageItem.size);
       } else {
         _newImageItem = nextImageItem;
-        _nextImageItem = nextImageItem;
       }
     });
     if (_newImageItem != null) {
@@ -438,28 +462,32 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
     }
   }
 
-  Future<Size> _resolveImageSize(final ImageProvider imageProvider) async
+  FutureOr<Size> _resolveImageSize(final ImageProvider imageProvider)
   {
-    final completer = Completer<ImageInfo>();
+    if (imageProvider is VectorProvider) {
+      return imageProvider.vectorInfo.size;
+    }
+    Size? syncSize;
+    final completer = Completer<Size>();
     final imageStream = imageProvider.resolve(_imageConfiguration);
     final imageStreamListener = ImageStreamListener(
-      (info, synchronousCall) => completer.complete(info),
+      (info, synchronousCall) {
+        final size = Size(
+          info.image.width / info.scale,
+          info.image.height / info.scale,
+        );
+        if (synchronousCall) {
+          syncSize = size;
+        }
+        completer.complete(size);
+        info.dispose();
+      },
       onError: (error, stackTrace) {
         if (!completer.isCompleted) completer.completeError(error, stackTrace);
       },
     );
     imageStream.addListener(imageStreamListener);
-    try {
-      final info = await completer.future;
-      final size = Size(
-        info.image.width * info.scale,
-        info.image.height * info.scale,
-      );
-      info.image.dispose();
-      return size;
-    } catch (e) {
-      return Size.zero;
-    }
+    return syncSize ?? completer.future;
   }
 
   late AnimationController _animationCtrl;
@@ -469,7 +497,6 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
 
   ImageItem? _curImageItem;
   ImageItem? _newImageItem;
-  ImageItem? _nextImageItem;
   bool _animateFirst = false;
   bool _done = false;
   bool _reloading = false;

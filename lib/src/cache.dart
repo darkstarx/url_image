@@ -5,8 +5,8 @@ import 'config.dart';
 import 'disposable_provider.dart';
 import 'downloader.dart';
 import 'logger.dart';
-import 'raster_provider.dart';
-import 'vector_provider.dart';
+import 'raster/provider.dart';
+import 'vector/provider.dart';
 
 
 enum ImageStatus

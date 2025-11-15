@@ -83,27 +83,79 @@ class _MyHomePageState extends State<MyHomePage>
   {
     final url = urls[_index];
     final name = Uri.parse(url).pathSegments.last;
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: InkWell(
-        onTap: () {},
-        child: Column(
-          children: [
-            Expanded(
-              child: UrlImage(name: name, url: url),
-            ),
-            const SizedBox(height: kToolbarHeight),
-          ],
+    final image = Hero(
+      tag: name,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => _openImage(name: name, url: url),
+          child: UrlImage(name: name, url: url, ink: true, fit: BoxFit.cover),
         ),
       ),
+    );
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: image),
+          const SizedBox(height: kToolbarHeight),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => setState(() {
-          if (++_index >= urls.length) _index = 0;
-        }),
+        onPressed: _changeImage,
         child: const Icon(Icons.navigate_next),
       ),
     );
   }
 
+  void _changeImage()
+  {
+    setState(() {
+      if (++_index >= urls.length) _index = 0;
+    });
+  }
+
+  void _openImage({
+    required final String name,
+    required final String url,
+  })
+  {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => MyImagePage(name: name, imageUrl: url),
+    ));
+  }
+
   var _index = 0;
+}
+
+
+class MyImagePage extends StatelessWidget
+{
+  final String name;
+  final String imageUrl;
+
+  const MyImagePage({
+    super.key,
+    required this.name,
+    required this.imageUrl,
+  });
+
+  @override
+  Widget build(final BuildContext context)
+  {
+    return Scaffold(
+      appBar: AppBar(title: Text(name)),
+      body: Center(
+        child: Hero(
+          tag: name,
+          child: SizedBox(
+            width: 200,
+            height: 200,
+            child: UrlImage(name: name, url: imageUrl, fit: BoxFit.cover),
+          ),
+        ),
+      ),
+    );
+  }
 }

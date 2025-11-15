@@ -5,7 +5,11 @@ import 'dart:ui';
 /// The deocded result of a vector graphics asset.
 class VectorInfo
 {
-  /// A picture generated from a vector graphics image.
+  /// A picture generated from a vector graphics image and representing a
+  /// sequence of recorded graphical operations.
+  /// 
+  /// A [Picture] can be drawn into a [Canvas], using the [Canvas.drawPicture]
+  /// method.
   final Picture picture;
 
   /// The target size of the picture.

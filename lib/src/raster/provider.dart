@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
-import 'disposable_provider.dart';
+import '../disposable_provider.dart';
 
 
 // Method signature for _loadAsync decode callbacks.
