@@ -23,5 +23,8 @@
 
 [//]: #
 [UrlImage]: https://pub.dev/packages/url_image
+[VectorImageCache]: https://pub.dev/documentation/url_image/latest/url_image/VectorImageCache-class.html
 [Column]: https://api.flutter.dev/flutter/widgets/Column-class.html
 [Row]: https://api.flutter.dev/flutter/widgets/Row-class.html
+[CrossAxisAlignment.stretch]: https://api.flutter.dev/flutter/rendering/CrossAxisAlignment.html#stretch
+[Hero]: https://api.flutter.dev/flutter/widgets/Hero-class.html
