@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'cache.dart';
 import 'config.dart';
 import 'downloader.dart';
+import 'image_item.dart';
 import 'ink_image.dart';
 import 'vector/provider.dart';
 
@@ -91,13 +92,13 @@ class UrlImage extends StatefulWidget
 
   /// How to align animated images, when a new image is fading in and the old
   /// one is fading out.
-  /// 
+  ///
   /// Defaults to [AlignmentDirectional.topStart].
   final AlignmentGeometry animationAlignment;
 
   /// How to fit animated images in the stack, when a new image is fading in and
   /// the old one is fading out.
-  /// 
+  ///
   /// Defaults to [StackFit.loose].
   final StackFit animationFit;
 
@@ -107,17 +108,17 @@ class UrlImage extends StatefulWidget
   /// the old one from the local file system is presented firstly, and after
   /// successfull downloading the new image is replacing the old one smoothly
   /// with specified [animationDuration].
-  /// 
+  ///
   /// Defaults to [defaultAnimationDuration].
   final Duration animationDuration;
 
   /// The curve of the fade in animation.
-  /// 
+  ///
   /// Defaulte to [Curves.easeIn].
   final Curve animationFadeInCurve;
 
   /// The curve of the fade out animation.
-  /// 
+  ///
   /// Defaults to [Curves.easeOut].
   final Curve animationFadeOutCurve;
 
@@ -125,19 +126,17 @@ class UrlImage extends StatefulWidget
   ///
   /// If true, the first image appears with animation, otherwise it shows
   /// immediately.
-  /// 
+  ///
   /// Defaulte to `true`.
   final bool animateInitialImage;
 
   /// Whether the image is drawing on the underlying material, so that [InkWell]
   /// and [InkResponse] splashes will render over it.
-  /// 
+  ///
   /// Defaults to `false`.
   final bool ink;
 
   /// The [child] contained by the container.
-  ///
-  /// It's using only when [ink] is true.
   final Widget? child;
 
   /// The widget to replace the standard [CircularProgressIndicator] centered on
@@ -269,15 +268,14 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
     if (widget.width != oldWidget.width || widget.height != oldWidget.height) {
       _updateImageConfiguration();
     }
+    // if (widget.url != oldWidget.url && _queue.isEmpty) {
+    //   _curImageItem = null;
+    // }
     if (widget.name != oldWidget.name
       || widget.url != oldWidget.url
       || widget.downloader != oldWidget.downloader
-      || widget.alignment != oldWidget.alignment
       || widget.width != oldWidget.width
       || widget.height != oldWidget.height
-      || widget.fit != oldWidget.fit
-      || widget.ink != oldWidget.ink
-      || widget.child != oldWidget.child
     ) {
       _loadImage();
     }
@@ -286,88 +284,67 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
   @override
   Widget build(final BuildContext context)
   {
-    return LayoutBuilder(builder: (context, constraints) {
-      final newImageItem = _newImageItem;
-      final curImageItem = _curImageItem;
-      Widget? newImage;
-      Widget? curImage;
-      if (newImageItem != null) {
-        newImage = _buildImage(newImageItem,
-          constraints: constraints,
-          opacity: _animation.value,
+    final newImageItem = _newImageItem;
+    final curImageItem = _curImageItem;
+    Widget? newImage;
+    Widget? curImage;
+    if (newImageItem != null) {
+      newImage = InkImage(
+        image: newImageItem.image,
+        imageSize: newImageItem.size,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        alignment: widget.alignment,
+        opacity: _animation.value,
+        errorBuilder: widget.errorBuilder,
+      );
+      if (curImageItem != null) {
+        curImage = InkImage(
+          image: curImageItem.image,
+          imageSize: curImageItem.size,
+          width: widget.width,
+          height: widget.height,
+          fit: widget.fit,
+          alignment: widget.alignment,
+          opacity: _backAnimation.value,
+          errorBuilder: widget.errorBuilder
         );
-        if (curImageItem != null) {
-          curImage = _buildImage(curImageItem,
-            constraints: constraints,
-            opacity: _backAnimation.value,
-          );
-        }
-      } else if (curImageItem != null) {
-        curImage = _buildImage(curImageItem, constraints: constraints);
       }
-      if (curImage != null || newImage != null) {
-        return Stack(
-          alignment: widget.animationAlignment,
-          fit: widget.animationFit,
-          children: [
-            if (curImage != null) curImage,
-            if (newImage != null) newImage,
-          ],
-        );
-      } else if (_curImageItem != null) {
-        return _buildImage(_curImageItem!, constraints: constraints);
-      } else if (_done) {
-        return buildErrorWidget(context, Exception('No image'),
-          errorBuilder: widget.errorBuilder,
-          width: constraints.constrainWidth(widget.width ?? double.infinity),
-          height: constraints.constrainHeight(widget.height ?? double.infinity),
-        );
-      } else {
-        return widget.loadingBuilder(context);
-      }
-    });
-  }
-
-  Widget _buildImage(final ImageItem imageItem, {
-    required final BoxConstraints constraints,
-    final double? opacity,
-  })
-  {
-    final image = imageItem.image;
-    final Size size;
-    switch (widget.fit) {
-      case BoxFit.scaleDown:
-        final sizeConstraints = constraints.loosen();
-        final unconstrainedSize = sizeConstraints
-          .constrainSizeAndAttemptToPreserveAspectRatio(imageItem.size);
-        size = constraints.constrain(unconstrainedSize);
-      case BoxFit.contain:
-      case BoxFit.cover:
-      case BoxFit.fill:
-      case BoxFit.fitHeight:
-      case BoxFit.fitWidth:
-      case BoxFit.none:
-      case null:
-        size = constraints.constrainSizeAndAttemptToPreserveAspectRatio(
-          imageItem.size
-        );
+    } else if (curImageItem != null) {
+      curImage = InkImage(
+        image: curImageItem.image,
+        imageSize: curImageItem.size,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        alignment: widget.alignment,
+        errorBuilder: widget.errorBuilder
+      );
     }
-    final width = widget.width ?? size.width;
-    final height = widget.height ?? size.height;
-    final inkImage = InkImage(
-      image: image,
-      width: width,
-      height: height,
-      fit: widget.fit,
-      alignment: widget.alignment,
-      opacity: opacity,
-      errorBuilder: widget.errorBuilder,
-      child: widget.child,
-    );
-    return widget.ink ? inkImage : Material(
-      type: MaterialType.transparency,
-      child: inkImage,
-    );
+    if (curImage != null || newImage != null) {
+      final stack = Stack(
+        alignment: widget.animationAlignment,
+        fit: widget.animationFit,
+        children: [
+          if (curImage != null) curImage,
+          if (newImage != null) newImage,
+          ?widget.child,
+        ],
+      );
+      return widget.ink ? stack : Material(
+        type: MaterialType.transparency,
+        child: stack,
+      );
+    } else if (_done) {
+      return buildErrorWidget(context, Exception('No image'),
+        errorBuilder: widget.errorBuilder,
+        width: widget.width,
+        height: widget.height,
+      );
+    } else {
+      return widget.loadingBuilder(context);
+    }
   }
 
   void _updateImageConfiguration()
@@ -400,6 +377,8 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
     final completer = Completer();
     _loading = completer.future;
 
+    var loaded = false;
+
     final firstAnyItem = UrlImage.cache.getAny(widget.url);
     if (firstAnyItem == null) {
       _animateFirst = widget.animateInitialImage;
@@ -407,6 +386,7 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
       final sizeOrFuture = _resolveImageSize(firstAnyItem.image);
       final size = sizeOrFuture is Size ? sizeOrFuture : await sizeOrFuture;
       _addImage(ImageItem(image: firstAnyItem.image, size: size));
+      loaded = true;
     }
 
     setState(() => _done = false);
@@ -417,11 +397,18 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
         final sizeOrFuture = _resolveImageSize(item.image);
         final size = sizeOrFuture is Size ? sizeOrFuture : await sizeOrFuture;
         _addImage(ImageItem(image: item.image, size: size));
+        loaded = true;
         if (_reloading) break;
       }
     }
     if (!_reloading) {
-      setState(() => _done = true);
+      setState(() {
+        _done = true;
+        _noData = !loaded;
+      });
+      if (_noData && !_animationCtrl.isAnimating) {
+        setState(() => _curImageItem = null);
+      }
       widget.onLoadingDone?.call(_curImageItem != null || _newImageItem != null);
     }
 
@@ -446,7 +433,15 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
       });
     }
     if (!mounted) return;
-    if (_queue.isEmpty) return;
+    if (_queue.isEmpty) {
+      if (_noData) {
+        setState(() {
+          _curImageItem = null;
+          widget.onImageAppear?.call(_curImageItem!.size);
+        });
+      }
+      return;
+    }
     setState(() {
       final nextImageItem = _queue.removeFirst();
       assert(_newImageItem == null);
@@ -499,20 +494,9 @@ class UrlImageState extends State<UrlImage> with SingleTickerProviderStateMixin
   ImageItem? _newImageItem;
   bool _animateFirst = false;
   bool _done = false;
+  bool _noData = false;
   bool _reloading = false;
   Future? _loading;
 
   final _queue = Queue<ImageItem>();
-}
-
-
-class ImageItem
-{
-  final ImageProvider image;
-  final Size size;
-
-  const ImageItem({
-    required this.image,
-    required this.size,
-  });
 }

@@ -1,11 +1,11 @@
 name: url_image
 description: "The widget that displays remote image loaded from the network by
   URL and supports persistent cache."
-version: 1.2.0
+version: 1.3.0
 homepage: https://github.com/darkstarx/url_image
 
 environment:
-  sdk: '>=3.4.0 <4.0.0'
+  sdk: '>=3.8.0 <4.0.0'
   flutter: ">=1.17.0"
 
 dependencies:

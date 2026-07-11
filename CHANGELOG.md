@@ -1,3 +1,8 @@
+## 1.3.0
+
+* Removed [LayoutBuilder] dependency to enable correct rendering within [IntrinsicHeight] and [IntrinsicWidth] widgets.
+* Raised SDK constraint to 3.8.0 to leverage newer language features.
+
 ## 1.2.0
 
 * The image `fit` is nullable now and its value is `null` by default.
@@ -28,3 +33,7 @@
 [Row]: https://api.flutter.dev/flutter/widgets/Row-class.html
 [CrossAxisAlignment.stretch]: https://api.flutter.dev/flutter/rendering/CrossAxisAlignment.html#stretch
 [Hero]: https://api.flutter.dev/flutter/widgets/Hero-class.html
+[BuildContext]: https://api.flutter.dev/flutter/widgets/BuildContext-class.html
+[LayoutBuilder]: https://api.flutter.dev/flutter/widgets/LayoutBuilder-class.html
+[IntrinsicWidth]: https://api.flutter.dev/flutter/widgets/IntrinsicWidth-class.html
+[IntrinsicHeight]: https://api.flutter.dev/flutter/widgets/IntrinsicHeight-class.html

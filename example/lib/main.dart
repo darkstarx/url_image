@@ -89,7 +89,12 @@ class _MyHomePageState extends State<MyHomePage>
         type: MaterialType.transparency,
         child: InkWell(
           onTap: () => _openImage(name: name, url: url),
-          child: UrlImage(name: name, url: url, ink: true, fit: BoxFit.cover),
+          child: UrlImage(
+            name: name,
+            url: url,
+            ink: true,
+            fit: BoxFit.cover,
+          ),
         ),
       ),
     );
@@ -99,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(child: image),
-          const SizedBox(height: kToolbarHeight),
+          const SizedBox(height: kToolbarHeight + kFloatingActionButtonMargin * 2),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -147,12 +152,16 @@ class MyImagePage extends StatelessWidget
     return Scaffold(
       appBar: AppBar(title: Text(name)),
       body: Center(
-        child: Hero(
-          tag: name,
-          child: SizedBox(
-            width: 200,
-            height: 200,
-            child: UrlImage(name: name, url: imageUrl, fit: BoxFit.cover),
+        child: SizedBox(
+          width: 200,
+          height: 200,
+          child: Hero(
+            tag: name,
+            child: UrlImage(
+              name: name,
+              url: imageUrl,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
       ),
